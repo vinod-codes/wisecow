@@ -1,0 +1,30 @@
+apiVersion: security.kubearmor.com/v1
+kind: KubeArmorPolicy
+metadata:
+  name: wisecow-zero-trust
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: wisecow
+  severity: 5
+  message: "Block access to sensitive files and restrict unexpected binaries"
+  file:
+    matchPaths:
+    - path: /etc/shadow
+      action: Block
+    - path: /etc/passwd
+      action: Audit
+  process:
+    matchDirectories:
+    - dir: /bin/
+      recursive: true
+      action: Audit
+    - dir: /usr/bin/
+      recursive: true
+      action: Audit
+  network:
+    matchProtocols:
+    - protocol: tcp
+      action: Audit
+
