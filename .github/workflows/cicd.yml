@@ -43,7 +43,8 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: ${{ secrets.KUBECONFIG != '' }}
+    env:
+      KUBECONFIG_B64: ${{ secrets.KUBECONFIG }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,24 +53,29 @@ jobs:
         uses: azure/setup-kubectl@v4
         with:
           version: 'v1.29.0'
+        if: ${{ env.KUBECONFIG_B64 != '' }}
 
       - name: Set Kubeconfig
         uses: azure/k8s-set-context@v4
         with:
           method: kubeconfig
           kubeconfig: ${{ secrets.KUBECONFIG }}
+        if: ${{ env.KUBECONFIG_B64 != '' }}
 
       - name: Replace image placeholder in manifests
         run: |
           sed -i "s#DOCKERHUB_USERNAME/wisecow:latest#${{ secrets.DOCKERHUB_USERNAME }}/wisecow:${{ github.sha }}#g" k8s/deployment.yaml
+        if: ${{ env.KUBECONFIG_B64 != '' }}
 
       - name: Apply manifests
         run: |
           kubectl apply -f k8s/deployment.yaml -f k8s/service.yaml
           # Ingress is optional; will work if controller + cert-manager installed
           if [ -f k8s/ingress.yaml ]; then kubectl apply -f k8s/ingress.yaml || true; fi
+        if: ${{ env.KUBECONFIG_B64 != '' }}
 
       - name: Wait for rollout
         run: |
           kubectl rollout status deploy/wisecow-deployment --timeout=120s
+        if: ${{ env.KUBECONFIG_B64 != '' }}
 
